@@ -1,6 +1,10 @@
+/* eslint-disable max-lines-per-function */
 /* eslint-disable no-unused-vars */
 const express = require("express");
 const morgan = require("morgan");
+const flash = require("express-flash");
+const session = require("express-session");
+const { body, validationResult } = require("express-validator");
 const TodoList = require("./lib/todolist");
 
 const app = express();
@@ -16,7 +20,19 @@ app.set("view engine", "pug");
 app.use(morgan("common"));
 app.use(express.static("public"));
 app.use(express.urlencoded({ extended: false }));
-
+app.use(session({
+  name: "launch-school-todos-session-id",
+  resave: false,
+  saveUninitialized: true,
+  secret: "this is not secure",
+}));
+app.use(flash());
+// Extract session info
+app.use((req, res, next) => {
+  res.locals.flash = req.session.flash;
+  delete req.session.flash;
+  next();
+});
 // Compare todo list titles alphabetically
 const compareByTitle = (todoListA, todoListB) => {
   let titleA = todoListA.title.toLowerCase();
@@ -57,27 +73,36 @@ app.get("/lists/new", (req, res) => {
   res.render("new-list");
 });
 // Create a new todo list
-app.post("/lists", (req, res) => {
-  let title = req.body.todoListTitle.trim();
-  if (!title) {
-    res.render("new-list", {
-      errorMessage: "List title is required.",
-    });
-  } else if (title.length > 100) {
-    res.render("new-list", {
-      errorMessage: "List title too long.",
-      todoListTitle: title,
-    });
-  } else if (todoLists.some(list => list.title === title)) {
-    res.render("new-list", {
-      errorMessage: "List title must be unique.",
-      todoListTitle: title,
-    });
-  } else {
-    todoLists.push(new TodoList(title));
-    res.redirect("/lists");
+app.post("/lists",
+  [
+    body("todoListTitle")
+      .trim()
+      .isLength({ min: 1 })
+      .withMessage("The list title is required.")
+      .isLength({ max: 100 })
+      .withMessage("List title must be between 1 and 100 characters.")
+      // preventing duplicate entries
+      .custom(title => {
+        let duplicate = todoLists.find(list => list.title === title);
+        return duplicate === undefined;
+      })
+      .withMessage("List title must be unique."),
+  ],
+  (req, res) => {
+    let errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      errors.array().forEach(err => req.flash("error", err.msg));
+      res.render("new-list", {
+        flash: req.flash(),
+        todoListTitle: req.body.todoListTitle,
+      });
+    } else {
+      todoLists.push(new TodoList(req.body.todoListTitle));
+      req.flash("success", "The todo list has been created.");
+      res.redirect("/lists");
+    }
   }
-});
+);
 
 // Listener
 app.listen(port, host, () => {
