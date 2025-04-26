@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 const express = require("express");
 const morgan = require("morgan");
+const TodoList = require("./lib/todolist");
 
 const app = express();
 const host = "localhost";
@@ -14,6 +15,7 @@ app.set("view engine", "pug");
 
 app.use(morgan("common"));
 app.use(express.static("public"));
+app.use(express.urlencoded({ extended: false }));
 
 // Compare todo list titles alphabetically
 const compareByTitle = (todoListA, todoListB) => {
@@ -40,11 +42,25 @@ const sortTodoLists = lists => {
   return [].concat(undone, done);
 };
 
-
+// Redirect start page
 app.get("/", (req, res) => {
+  res.redirect("/lists");
+});
+// Render the list of todo lists
+app.get("/lists", (req, res) => {
   res.render("lists", {
     todoLists: sortTodoLists(todoLists),
   });
+});
+
+app.get("/lists/new", (req, res) => {
+  res.render("new-list");
+});
+// Create a new todo list
+app.post("/lists", (req, res) => {
+  let title = req.body.todoListTitle.trim();
+  todoLists.push(new TodoList(title));
+  res.redirect("/lists");
 });
 
 // Listener
