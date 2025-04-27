@@ -199,6 +199,30 @@ app.post("/lists/:todoListId/todos",
   }
 );
 
+// Render edit todo list form
+app.get(`/lists/:todoListId/edit`, (req, res, next) => {
+  let todoListId = req.params.todoListId;
+  let todoList = loadTodoList(+todoListId);
+
+  if (!todoList) next(new Error("Not found."));
+  res.render("edit-list", { todoList });
+});
+
+// Delete todolist
+app.post(`/lists/:todoListId/destroy`, (req, res, next) => {
+  let todoListId = req.params.todoListId;
+  let todoList = loadTodoList(+todoListId);
+  let idxOfTodoList = todoLists.findIndex(list => list === todoList);
+
+  if (idxOfTodoList === -1) {
+    next(new Error("Not found."));
+  } else {
+    todoLists.splice(idxOfTodoList, 1);
+    req.flash("success", `Todolist has been deleted.`);
+    res.redirect(`/lists`);
+  }
+});
+
 // Error handler
 app.use((err, req, res, _next) => {
   console.log(err); // Writes more extensive information to the console log
