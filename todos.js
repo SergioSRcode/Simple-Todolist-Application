@@ -145,6 +145,19 @@ app.post(`/lists/:todoListId/todos/:todoId/destroy`, (req, res, next) => {
   }
 });
 
+app.post(`/lists/:todoListId/complete_all`, (req, res, next) => {
+  let todoListId = req.params.todoListId;
+  let todoList = loadTodoList(+todoListId);
+
+  if (!todoList) {
+    next(new Error("Not found."));
+  } else {
+    todoList.markAllDone();
+    req.flash("success", "All Todos were marked as done!");
+    res.redirect(`/lists/${todoListId}`);
+  }
+});
+
 // Error handler
 app.use((err, req, res, _next) => {
   console.log(err); // Writes more extensive information to the console log
