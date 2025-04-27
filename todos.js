@@ -130,6 +130,21 @@ app.post(`/lists/:todoListId/todos/:todoId/toggle`, (req, res, next) => {
   res.redirect(`/lists/${todoListId}`);
 });
 
+app.post(`/lists/:todoListId/todos/:todoId/destroy`, (req, res, next) => {
+  let { todoListId, todoId } = { ...req.params };
+  let todoList = loadTodoList(+todoListId);
+  let todo = loadTodo(todoList, +todoId);
+  let idxOfTodo = todoList.findIndexOf(todo);
+
+  if (!todo || !todoList) {
+    next(new Error("Not found."));
+  } else {
+    todoList.removeAt(idxOfTodo);
+    req.flash("success", `Todo has been deleted.`);
+    res.redirect(`/lists/${todoListId}`);
+  }
+});
+
 // Error handler
 app.use((err, req, res, _next) => {
   console.log(err); // Writes more extensive information to the console log
